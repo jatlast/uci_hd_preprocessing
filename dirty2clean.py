@@ -6,14 +6,13 @@
 # required for reading csv files to get just the header
 import csv
 # required for reading text file into numpy matrix
-#from numpy import genfromtxt
 import numpy as np
 # required for determining data file name on the fly
 import re
 # allow command line options
 import argparse
 # used to normalize so I don't have to reinvent "this" wheel (it's already 04/10/2019)
-from sklearn.preprocessing import normalize
+#from sklearn.preprocessing import normalize
 
 # code adopted from:
 #   https://stackoverflow.com/questions/12116685/how-can-i-require-my-python-scripts-argument-to-be-a-float-between-0-0-1-0-usin
@@ -41,6 +40,8 @@ local_dic = {
     , 'age_col_index' : -1
     , 'cigs_col_index' : -1
     , 'years_col_index' : -1
+    # used to reorder to "cp" column
+    , 'cp_col_index' : -1
     # Various Headers
     , 'file_header_92' : ['id', 'ccf', 'age', 'sex', 'painloc', 'painexer', 'relrest', 'pncaden', 'cp', 'trestbps', 'htn', 'chol', 'smoke', 'cigs', 'years', 'fbs', 'dm', 'famhist', 'restecg', 'ekgmo', 'ekgday', 'ekgyr', 'dig', 'prop', 'nitr', 'pro', 'diuretic', 'proto', 'thaldur', 'thaltime', 'met', 'thalach', 'thalrest', 'tpeakbps', 'tpeakbpd', 'dummy', 'trestbpd', 'exang', 'xhypo', 'oldpeak', 'slope', 'rldv5', 'rldv5e', 'ca', 'restckm', 'exerckm', 'restef', 'restwm', 'exeref', 'exerwm', 'thal', 'thalsev', 'thalpul', 'earlobe', 'cmo', 'cday', 'cyr', 'num', 'lmt', 'ladprox', 'laddist', 'diag', 'cxmain', 'ramus', 'om1', 'om2', 'rcaprox', 'rcadist', 'lvx1', 'lvx2', 'lvx3', 'lvx4', 'lvf', 'cathef', 'junk', 'unk01' ,'unk02' ,'unk03' ,'unk04' ,'unk05' ,'unk06' ,'unk07' ,'unk08' ,'unk09' ,'unk10' ,'unk11' ,'unk12' ,'unk13' ,'unk14' ,'name']
     , 'file_header_78' : ['id', 'ccf', 'age', 'sex', 'painloc', 'painexer', 'relrest', 'pncaden', 'cp', 'trestbps', 'htn', 'chol', 'smoke', 'cigs', 'years', 'fbs', 'dm', 'famhist', 'restecg', 'ekgmo', 'ekgday', 'ekgyr', 'dig', 'prop', 'nitr', 'pro', 'diuretic', 'proto', 'thaldur', 'thaltime', 'met', 'thalach', 'thalrest', 'tpeakbps', 'tpeakbpd', 'dummy', 'trestbpd', 'exang', 'xhypo', 'oldpeak', 'slope', 'rldv5', 'rldv5e', 'ca', 'restckm', 'exerckm', 'restef', 'restwm', 'exeref', 'exerwm', 'thal', 'thalsev', 'thalpul', 'earlobe', 'cmo', 'cday', 'cyr', 'num', 'lmt', 'ladprox', 'laddist', 'diag', 'cxmain', 'ramus', 'om1', 'om2', 'rcaprox', 'rcadist', 'lvx1', 'lvx2', 'lvx3', 'lvx4', 'lvf', 'cathef', 'junk', 'name']
@@ -72,6 +73,11 @@ local_dic = {
                             # 1: typical angina
                             # 2: atypical angina
                             # 3: non-anginal pain
+                    # based on Detrano, 1984, p542/2
+                    # "...chest pain consisted of 4952 symptomatic individuals studied with 
+                    #  coronary arteriography and 23,996 asymptomatic persons who died of 
+                    #  disease other than cardiac disease and were not known to have coronary
+                    #  disease previous to their postmortem examinations."
         , 'trestbps'# numeric
                         # 10 trestbps: resting blood pressure (in mm Hg on admission to the hospital)
         , 'chol'    # numeric
@@ -244,11 +250,6 @@ for key, na_count in missing_dic.items():
     # Discard previously determined useless headers
     elif args.columnset != 'max' and key not in local_dic['useful_headers']:
         discard_header = True
-    # Discard columns that meet the specified percentage of missing values.
-    # elif row_count - na_count < row_count - (row_count * args.columntolerance):
-    #     print(f"{row_count} - {na_count} < {row_count} - {round(row_count * args.columntolerance,2)} | {round((row_count - na_count)/row_count,2)}% good")
-    # elif na_count/row_count < args.columntolerance:
-    #     print(f"{na_count/row_count} < {round(args.columntolerance,2)}")
     elif (row_count - na_count)/row_count < args.columntolerance:
         discard_header = True
     else:
@@ -261,7 +262,9 @@ for key, na_count in missing_dic.items():
         # save the index for columns of interest for ease of later processing
         if key == local_dic['target_col_name']:
             local_dic['target_col_index'] = len(local_dic['clean_header']) - 1
-        # forced to be "data specific"
+        # a little too "data specific" but it's quick
+        elif key == 'cp':
+            local_dic['cp_col_index'] = len(local_dic['clean_header']) - 1
         elif key == 'age':
             local_dic['age_col_index'] = len(local_dic['clean_header']) - 1
         elif key == 'cigs':
@@ -290,37 +293,19 @@ local_dic['delete_rows'] = []
 bad_row_attributes = {}
 # loop through data adding up missing row counts
 for row in range(0, row_count):
-#for row in range(0, 10):
     bad_row_attributes[row] = []
     for col in range(0, len(clean_data[row])):
         if clean_data[row][col] < 0:
             bad_row_attributes[row].append(local_dic['clean_header'][col])
-            
-            # bad_attributes_count = len(bad_row_attributes[row])
-            # if bad_attributes_count/local_dic['col_count'] > 0.05:
-            #     local_dic['delete_rows'].append(row) # add columns to be discarded
-            #     # print debug info
-            #     if args.verbosity > 1:
-            #         print(f"{local_dic['file_header'][col]}: bad({bad_attributes_count}) clean_data[{row}][{col}] = {clean_data[row][col]} \t{bad_attributes_count} of {local_dic['col_count']} = {local_dic['col_count'] - bad_attributes_count}\t{round(bad_attributes_count/local_dic['col_count'],2)}%")
-            #     break
 
 # loop through the rows and add the bad rows to be discarded based on the passed in threshold
 for row in bad_row_attributes:
     bad_attributes_count = len(bad_row_attributes[row])
     if (local_dic['col_count'] - bad_attributes_count)/local_dic['col_count'] < args.rowtolerance:
-#    if local_dic['col_count'] - bad_attributes_count < local_dic['col_count'] - (local_dic['col_count'] * args.rowtolerance):
-#    if bad_attributes_count/local_dic['col_count'] > args.rowtolerance:
         local_dic['delete_rows'].append(row) # add columns to be discarded
         # print debug info
         if args.verbosity > 1:
             print(f"bad({bad_attributes_count}) {bad_row_attributes[row]} |\t{bad_attributes_count} of {local_dic['col_count']} = {local_dic['col_count'] - bad_attributes_count} < {round(local_dic['col_count'] - (local_dic['col_count'] * args.rowtolerance),2)}\t{round(100*(local_dic['col_count'] - bad_attributes_count)/local_dic['col_count'],2)}% good")
-
-
-# local_dic['delete_rows'] = []
-# for row in range(0, row_count):
-# #    if local_dic['bad_rows'][row] > 0:
-#     if local_dic['bad_rows'][row]/local_dic['col_count'] > 0.1:
-#         local_dic['delete_rows'].append(row)
 
 print(f"bad rows = {len(local_dic['delete_rows'])}")
 # Delete the columns discarded in the above for loop
@@ -334,10 +319,17 @@ unique_target_dic = {0 : 0, 1 : 0, 2 : 0, 3 : 0, 4 : 0}
 for row in range(0, clean_shape[0]):
     unique_target_dic[clean_data[row][local_dic['target_col_index']]] += 1
 
+# recalibrate the "cp" attribut so that "4: asymptomatic" = 0 instead of 4
+for row in range(0, clean_shape[0]):
+    if clean_data[row][local_dic['cp_col_index']] == 4:
+        clean_data[row][local_dic['cp_col_index']] = 0
+
+# print debugging info
 if args.verbosity > 0:
     for key, value in unique_target_dic.items():
         print(f"{key}:{value} = {round(100*value/clean_shape[0],2)}%")
 
+# calculate and add "smoke" column based on ( (years smoked / age) * cigs per day )
 if local_dic['cigs_col_index'] > -1:
     col_to_add = []
     local_dic['clean_header'].append('smoke')
@@ -357,22 +349,31 @@ if local_dic['cigs_col_index'] > -1:
 
     #print(f"smoke: {col_to_add}")
     #print(f"smoke: {len(col_to_add)}")
-    smoke_data = np.append(clean_data, col_to_add, axis=1)
+    clean_data = np.append(clean_data, col_to_add, axis=1)
 
     # remove 'orig" from file name and replece it with 'smoke_'
     local_dic['file_root'] = re.sub(r'orig', 'smoke_' + args.columnset, local_dic['file_root'])
-
-    # write new CSV file
-    np.savetxt(local_dic['file_dir'] + local_dic['file_root'] + '.csv', smoke_data, delimiter=',', fmt='%f', header=local_dic['clean_header_csv'])
 else:
     # remove 'orig" from file name and replece it with 'clean'
     local_dic['file_root'] = re.sub(r'orig', 'clean_' + args.columnset, local_dic['file_root'])
     #local_dic['file_root'] = re.sub(r'orig', 'min', local_dic['file_root'])
 
-    # write new CSV file
-    np.savetxt(local_dic['file_dir'] + local_dic['file_root'] + '.csv', clean_data, delimiter=',', fmt='%f', header=local_dic['clean_header_csv'])
+# add binary "target" column based on "num" column: 0 = 1 & (1-4) = 1
+# col_to_add = []
+# local_dic['clean_header'].append('target')
+# local_dic['clean_header_csv'] += ',target'
+# for row in range(0, clean_shape[0]):
+#     target_val = 0
+#     if clean_data[row][local_dic['target_col_index']] > 0:
+#         target_val = 1
+#     col_to_add.append( [ target_val ] )
+# clean_data = np.append(clean_data, col_to_add, axis=1)
+
+# write new CSV file
+np.savetxt(local_dic['file_dir'] + local_dic['file_root'] + '.csv', clean_data, delimiter=',', fmt='%f', comments='', header=local_dic['clean_header_csv'])
 
 
+#clean_data.groupby(local_dic['target_col_index']).transform(lambda x: (x - x.mean()) / x.std())
 
 
 # normal_data = normalize(clean_data, axis=0, norm='max')
