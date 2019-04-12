@@ -62,22 +62,12 @@ local_dic = {
                         # 3 age: age in years
         , 'sex'     # binary
                         # 4 sex: sex (1 = male; 0 = female)
-        , 'cp'      # ordinal
-                        # 9 cp: chest pain type
-                            # 1: typical angina
-                            # 2: atypical angina
-                            # 3: non-anginal pain
-                            # 4: asymptomatic
-                        # Jason's Reorder by perceived severity
-                            # 0: asymptomatic
-                            # 1: typical angina
-                            # 2: atypical angina
-                            # 3: non-anginal pain
-                    # based on Detrano, 1984, p542/2
-                    # "...chest pain consisted of 4952 symptomatic individuals studied with 
-                    #  coronary arteriography and 23,996 asymptomatic persons who died of 
-                    #  disease other than cardiac disease and were not known to have coronary
-                    #  disease previous to their postmortem examinations."
+        , 'cp'      # ordinal (values appear to be in reverse order but it should not matter for prediction)
+                        # 9 cp: chest pain type (descriptions from Detrano, 1984, p542/2)
+                            # 1: typical angina - Pain that occurs in the anterior thorax, neck, shoulders, jaw, or arms is precipitated by exertion and relieved within 20 min by rest.
+                            # 2: atypical angina - Pain in one of the above locations and either not precipitated by exertion or not relieved by rest within 20 min.
+                            # 3: non-anginal pain - Pain not located in any of the above locations, or if so located not related to exertion, and lasting less than 10 sec or longer than 30 min.
+                            # 4: asymptomatic - No pain
         , 'trestbps'# numeric
                         # 10 trestbps: resting blood pressure (in mm Hg on admission to the hospital)
         , 'chol'    # numeric
@@ -107,10 +97,6 @@ local_dic = {
                             # 3 = normal
                             # 6 = fixed defect
                             # 7 = reversable defect
-                        # Jason's Reorder by perceived severity
-                            # 0 = normal
-                            # 1 = reversable defect
-                            # 2 = fixed defect
         , 'num'     # numeric
                         # 58 (0-4) number of major vessels with > 50% diameter narrowing
         ]
@@ -263,8 +249,8 @@ for key, na_count in missing_dic.items():
         if key == local_dic['target_col_name']:
             local_dic['target_col_index'] = len(local_dic['clean_header']) - 1
         # a little too "data specific" but it's quick
-        elif key == 'cp':
-            local_dic['cp_col_index'] = len(local_dic['clean_header']) - 1
+        # elif key == 'cp':
+        #     local_dic['cp_col_index'] = len(local_dic['clean_header']) - 1
         elif key == 'age':
             local_dic['age_col_index'] = len(local_dic['clean_header']) - 1
         elif key == 'cigs':
@@ -319,15 +305,15 @@ unique_target_dic = {0 : 0, 1 : 0, 2 : 0, 3 : 0, 4 : 0}
 for row in range(0, clean_shape[0]):
     unique_target_dic[clean_data[row][local_dic['target_col_index']]] += 1
 
-# recalibrate the "cp" attribut so that "4: asymptomatic" = 0 instead of 4
-for row in range(0, clean_shape[0]):
-    if clean_data[row][local_dic['cp_col_index']] == 4:
-        clean_data[row][local_dic['cp_col_index']] = 0
-
 # print debugging info
 if args.verbosity > 0:
     for key, value in unique_target_dic.items():
         print(f"{key}:{value} = {round(100*value/clean_shape[0],2)}%")
+
+# recalibrate the "cp" attribut so that "4: asymptomatic" = 0 instead of 4
+# for row in range(0, clean_shape[0]):
+#     if clean_data[row][local_dic['cp_col_index']] == 4:
+#         clean_data[row][local_dic['cp_col_index']] = 0
 
 # calculate and add "smoke" column based on ( (years smoked / age) * cigs per day )
 if local_dic['cigs_col_index'] > -1:

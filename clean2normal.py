@@ -43,18 +43,31 @@ if args.verbosity > 1:
 df = pd.read_csv(local_dic['file_dir'] + local_dic['file_root'] + '.csv')
 print(f"df.shape:{df.shape}")
 
+# DataFrame min-max normalization adapted from:
+#   https://www.kaggle.com/parasjindal96/how-to-normalize-dataframe-pandas
+def normalize(dfToNormalize, dLocalVariables):
+    # min-max normalization on entire dataframe
+    dataNorm = ( (dfToNormalize-dfToNormalize.min() ) / ( dfToNormalize.max()-dfToNormalize.min() ) )
+    # add the target "num" column back to the newly normalized dataframe
+    dataNorm[dLocalVariables['target_col_name']] = dfToNormalize[dLocalVariables['target_col_name']]
+    return dataNorm
+
 # min-max normalization by target_col_name (i.e., "num")
 #df_normal = df.groupby(local_dic['target_col_name']).transform(lambda x: (x-min(x))/(max(x)-min(x)))
-df_normal = df.groupby(local_dic['target_col_name']).transform(lambda x: (x-x.min())/(x.max()-x.min()))
-
+#df_normal = df.groupby(local_dic['target_col_name']).transform(lambda x: (x-x.min())/(x.max()-x.min()))
+#df_normal = df.transform(lambda x: (x-x.min())/(x.max()-x.min()))
 # normalization by z-score normalization
 #df_normal = df.groupby(local_dic['target_col_index']).transform(lambda x: (x - x.mean()) / x.std())
 
+df_normal = normalize(df, local_dic)
+print(f"df_normal.sample:\n{df_normal.sample(5)}")
+
 # recombine the groupby column into the dataframe to be saved
-df_normal = pd.concat([df_normal,df.loc[:, local_dic['target_col_name'] ] ], axis=1)
+#df_normal = pd.concat([df_normal,df.loc[:, local_dic['target_col_name'] ] ], axis=1)
 
 # add the binary "target" column used in nearly all of the literature referencing this data set.
 #df_normal['target'] = df_normal[local_dic['target_col_name']].apply(lambda x: 'True' if x >= 1 else 'Fals')
+
 df_normal['target'] = df_normal[local_dic['target_col_name']].apply(lambda x: 1 if x >= 1 else 0)
 print(f"{df_normal.head()}")
 
