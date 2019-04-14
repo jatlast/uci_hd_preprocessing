@@ -69,6 +69,6 @@ print(f"df_normal.sample:\n{df_normal.sample(5)}")
 #df_normal['target'] = df_normal[local_dic['target_col_name']].apply(lambda x: 'True' if x >= 1 else 'Fals')
 
 df_normal['target'] = df_normal[local_dic['target_col_name']].apply(lambda x: 1 if x >= 1 else 0)
-print(f"{df_normal.head()}")
+print(f"{df_normal.sample(5)}")
 
 df_normal.to_csv(local_dic['file_dir'] + local_dic['file_root'] + '_normal.csv', index=False)

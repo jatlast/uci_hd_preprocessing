@@ -22,7 +22,7 @@ def restricted_float(x):
 parser = argparse.ArgumentParser(description="perform the k-means clustering on 1 to 2-dimensional data")
 parser.add_argument("-f", "--filename", default="./data/new_smoke_uci+_normal.csv", help="file name (and path if not in . dir)")
 parser.add_argument("-tp", "--trainpercent", type=restricted_float, default=0.8, help="training percentage as a decimal (1-tp=test)")
-#parser.add_argument("-rt", "--rowtolerance", type=restricted_float, default=0.0, help="tolerance percentage as a decimal for missing row data")
+parser.add_argument("-bp", "--biaspercent", type=restricted_float, default=0.9, help="bias percentage as a decimal to favor num = 3 & 4")
 #parser.add_argument("-cs", "--columnset", choices=['uci', 'uci+', 'min', 'max'], default='max', help="limit the attributes to be considered")
 parser.add_argument("-v", "--verbosity", type=int, choices=[0, 1, 2], default=2, help="increase output verbosity")
 args = parser.parse_args()
@@ -31,9 +31,10 @@ args = parser.parse_args()
 local_dic = {
     'file_root' : ''
     , 'file_dir' : './data/'
+    , 'file_id' : str(int(args.biaspercent*100)) + str(int(args.trainpercent*100))
     , 'target_col_name' : 'num'
     , 'target_col_index' : -1
-    , 'num_bias' : 0.9
+    , 'num_bias' : args.biaspercent
     , 'random_state' : 100
 }
 
@@ -86,6 +87,8 @@ for i in range(0, len(dict_of_nums)):
     elif i == 4:
         num_4 = dict_of_nums[i]
 
+# adopted sampling from PagMax's 204 answer, "Pandas random sample will also work":
+#   https://stackoverflow.com/questions/24147278/how-do-i-create-test-and-train-samples-from-one-dataframe-with-pandas
 # split the num=4 90/10
 df_train_4 = num_4.sample(frac=local_dic['num_bias'], random_state=local_dic['random_state'])
 df_test_4 = num_4.drop(df_train_4.index)
@@ -93,7 +96,8 @@ df_test_4 = num_4.drop(df_train_4.index)
 df_train_3 = num_3.sample(frac=local_dic['num_bias'], random_state=local_dic['random_state'])
 df_test_3 = num_3.drop(df_train_3.index)
 # split the num=2 by the passed-in percentage
-df_train_2 = num_2.sample(frac=args.trainpercent, random_state=local_dic['random_state'])
+df_train_2 = num_2.sample(frac=local_dic['num_bias'], random_state=local_dic['random_state'])
+#df_train_2 = num_2.sample(frac=args.trainpercent, random_state=local_dic['random_state'])
 df_test_2 = num_2.drop(df_train_2.index)
 # split the num=1 by the passed-in percentage
 df_train_1 = num_1.sample(frac=args.trainpercent, random_state=local_dic['random_state'])
@@ -108,11 +112,14 @@ df_test = pd.concat([df_test_0, df_test_1, df_test_2, df_test_3, df_test_4], axi
 
 print(f"df_train:{df_train.shape} | df_test:{df_test.shape}")
 
-# print(f"df_train:\n{df_train.head()}")
-# print(f"df_test:\n{df_test.head()}")
+# print debugging info
+if args.verbosity > 0:
+    print(f"df_train:\n{df_train.sample(5)}")
+    print(f"df_test:\n{df_test.sample(5)}")
 
-df_train.to_csv(local_dic['file_dir'] + local_dic['file_root'] + '_train.csv', index=False)
-df_test.to_csv(local_dic['file_dir'] + local_dic['file_root'] + '_test.csv', index=False)
+# output the training and test files to csv
+df_train.to_csv(local_dic['file_dir'] + local_dic['file_root'] + '_train_' + local_dic['file_id'] + '.csv', index=False)
+df_test.to_csv(local_dic['file_dir'] + local_dic['file_root'] + '_test_' + local_dic['file_id'] + '.csv', index=False)
 
 
 
