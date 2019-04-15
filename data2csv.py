@@ -68,9 +68,10 @@ with open(args.filename, mode='r') as data_file:
     record_dic = {} # dictionary to hold each of the records after accumulation
     rec_count = 0   # used as dictionary of records key
     skip_count = 0
-    skip_rows = 0   # new.data contains duplicates of the cleveland.data
-    if output_file == 'new_orig.csv':
-        skip_rows = 280 # (i.e., the first 282 are cleveland.data duplicates)
+    skip_rows = 0   # new.data contains duplicates of all four of the *.data files
+    # hence, don't skip any of them (new.data may be usable as a combination of all data sets in one)
+    # if output_file == 'new_orig.csv':
+    #     skip_rows = 280 # (i.e., the first 282 are cleveland.data duplicates)
     # parse data file
     for line in data_file:
         # remove real names
