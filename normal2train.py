@@ -117,10 +117,9 @@ if args.verbosity > 0:
     print(f"df_train:\n{df_train.sample(5)}")
     print(f"df_test:\n{df_test.sample(5)}")
 
-# output the training and test files to csv
-df_train.to_csv(local_dic['file_dir'] + local_dic['file_root'] + '_train_' + local_dic['file_id'] + '.csv', index=False)
-df_test.to_csv(local_dic['file_dir'] + local_dic['file_root'] + '_test_' + local_dic['file_id'] + '.csv', index=False)
-
+# randomize using sample() and output the training and test files to csv
+df_train.sample(frac=1).to_csv(local_dic['file_dir'] + local_dic['file_root'] + '_train_' + local_dic['file_id'] + '.csv', index=False)
+df_test.sample(frac=1).to_csv(local_dic['file_dir'] + local_dic['file_root'] + '_test_' + local_dic['file_id'] + '.csv', index=False)
 
 
 
