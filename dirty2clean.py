@@ -26,7 +26,7 @@ parser = argparse.ArgumentParser(description="perform the k-means clustering on 
 parser.add_argument("-f", "--filename", default="./data/hungarian_orig.csv", help="file name (and path if not in . dir)")
 parser.add_argument("-ct", "--columntolerance", type=restricted_float, default=0.0, help="tolerance percentage as a decimal for missing column data")
 parser.add_argument("-rt", "--rowtolerance", type=restricted_float, default=0.0, help="tolerance percentage as a decimal for missing row data")
-parser.add_argument("-cs", "--columnset", choices=['uci', 'uci+', 'min', 'max'], default='max', help="limit the attributes to be considered")
+parser.add_argument("-cs", "--columnset", choices=['uci', 'uci+', 'bst', 'min', 'max'], default='max', help="limit the attributes to be considered")
 parser.add_argument("-v", "--verbosity", type=int, choices=[0, 1, 2], default=2, help="increase output verbosity")
 args = parser.parse_args()
 
@@ -47,7 +47,8 @@ local_dic = {
     , 'file_header_78' : ['id', 'ccf', 'age', 'sex', 'painloc', 'painexer', 'relrest', 'pncaden', 'cp', 'trestbps', 'htn', 'chol', 'smoke', 'cigs', 'years', 'fbs', 'dm', 'famhist', 'restecg', 'ekgmo', 'ekgday', 'ekgyr', 'dig', 'prop', 'nitr', 'pro', 'diuretic', 'proto', 'thaldur', 'thaltime', 'met', 'thalach', 'thalrest', 'tpeakbps', 'tpeakbpd', 'dummy', 'trestbpd', 'exang', 'xhypo', 'oldpeak', 'slope', 'rldv5', 'rldv5e', 'ca', 'restckm', 'exerckm', 'restef', 'restwm', 'exeref', 'exerwm', 'thal', 'thalsev', 'thalpul', 'earlobe', 'cmo', 'cday', 'cyr', 'num', 'lmt', 'ladprox', 'laddist', 'diag', 'cxmain', 'ramus', 'om1', 'om2', 'rcaprox', 'rcadist', 'lvx1', 'lvx2', 'lvx3', 'lvx4', 'lvf', 'cathef', 'junk', 'name']
     , 'miao_header_28' : ['age', 'sex', 'cp', 'trestbps', 'htn', 'chol',        'restecg', 'ekgmo', 'ekgday', 'ekgyr', 'prop', 'nitr', 'pro', 'thaldur', 'thalach', 'thalrest', 'tpeakbps', 'tpeakbpd', 'dummy', 'trestbpd', 'exang', 'xhypo', 'oldpeak',                        'cmo', 'cday', 'cyr', 'num', 'lvf']
 #   , 'uci_header_14'  : ['age', 'sex', 'cp', 'trestbps',        'chol', 'fbs', 'restecg',                                                               'thalach',                                                          'exang',          'oldpeak', 'slope', 'ca', 'thal',                       'num']
-    , 'min_header_10'  : ['age', 'sex', 'cp', 'trestbps',        'chol',        'restecg',                                                               'thalach',                                                          'exang',          'oldpeak', 'num']
+    , 'min_header_10'  : ['age', 'sex', 'cp', 'trestbps',        'chol',        'restecg',                                                               'thalach',                                                          'exang',          'oldpeak',                                              'num']
+    , 'bst_header_05'  : [              'cp',                                                                                                            'thalach',                                                                            'oldpeak',          'ca', 'thal',                       'num']
     # potentially of interest (append to uci when -ca = uci+)
     , 'interesting_headers'  : [
         'cigs'      # 14 cigs (cigarettes per day)
@@ -101,25 +102,25 @@ local_dic = {
                         # 58 (0-4) number of major vessels with > 50% diameter narrowing
         ]
     # attribut type by column name
-    , 'col_type'  : {
-        'age'       : 'numeric'
-        , 'sex'     : 'binary'
-        , 'cp'      : 'ordinal'
-        , 'trestbps': 'numeric'
-        , 'chol'    : 'numeric'
-        , 'fbs'     : 'binary'
-        , 'restecg' : 'ordinal'
-        , 'thalach' : 'numeric'
-        , 'exang'   : 'binary'
-        , 'oldpeak' : 'numeric'
-        , 'slope'   : 'ordinal'
-        , 'ca'      : 'numeric'
-        , 'thal'    : 'ordinal'
-        , 'num'     : 'numeric'
-        , 'cigs'    : 'numeric'
-        , 'years'   : 'numeric'
-        , 'famhist' : 'binary'
-    }
+    # , 'col_type'  : {
+    #     'age'       : 'numeric'
+    #     , 'sex'     : 'binary'
+    #     , 'cp'      : 'ordinal'
+    #     , 'trestbps': 'numeric'
+    #     , 'chol'    : 'numeric'
+    #     , 'fbs'     : 'binary'
+    #     , 'restecg' : 'ordinal'
+    #     , 'thalach' : 'numeric'
+    #     , 'exang'   : 'binary'
+    #     , 'oldpeak' : 'numeric'
+    #     , 'slope'   : 'ordinal'
+    #     , 'ca'      : 'numeric'
+    #     , 'thal'    : 'ordinal'
+    #     , 'num'     : 'numeric'
+    #     , 'cigs'    : 'numeric'
+    #     , 'years'   : 'numeric'
+    #     , 'famhist' : 'binary'
+    # }
     # Discard the following because the heart-disease.names file makes clear these columns are irrelevant for prediction purposes
     , 'useless_headers': [
         'id'        # 1 id: patient identification number
@@ -174,6 +175,8 @@ if args.columnset != 'max':
         local_dic['useful_headers'] = local_dic['uci_header_14'] + local_dic['interesting_headers']
     elif args.columnset == 'min':
         local_dic['useful_headers'] = local_dic['min_header_10']
+    elif args.columnset == 'bst':
+        local_dic['useful_headers'] = local_dic['bst_header_05']
 
 # a regular expression to match the root of the file name supplied
 match = re.search(r'([a-zA-Z0-9_-]+).csv', args.filename)
@@ -330,6 +333,7 @@ if local_dic['cigs_col_index'] > -1:
             # assume less than half a pack of "cigs" per day means mini cigars
             elif clean_data[row][local_dic['cigs_col_index']] < 10:
                 cigar_multiplier = 5
+            # Formula: (years smoked / (age * cigs per day * [cigar assumption] (5 or 10) ))
             smoke_val = (clean_data[row][local_dic['years_col_index']] / clean_data[row][local_dic['age_col_index']]) * (clean_data[row][local_dic['cigs_col_index']] * cigar_multiplier)
         col_to_add.append( [ smoke_val ] )
 
