@@ -1,6 +1,10 @@
 ########################################################################
 # Jason Baumbach
 #   Read in clean csv file, normalize contents, then output new csv file
+#
+# Note: this code is available on GitHub 
+#   https://github.com/jatlast/uci_hd_preprocessing.git
+#
 ########################################################################
 
 # required for easy dataframe manipulations
@@ -12,9 +16,6 @@ import re
 
 parser = argparse.ArgumentParser(description="perform the k-means clustering on 1 to 2-dimensional data")
 parser.add_argument("-f", "--filename", default="./data/new_smoke_uci+.csv", help="file name (and path if not in . dir)")
-#parser.add_argument("-ct", "--columntolerance", type=restricted_float, default=0.0, help="tolerance percentage as a decimal for missing column data")
-#parser.add_argument("-rt", "--rowtolerance", type=restricted_float, default=0.0, help="tolerance percentage as a decimal for missing row data")
-#parser.add_argument("-cs", "--columnset", choices=['uci', 'uci+', 'min', 'max'], default='max', help="limit the attributes to be considered")
 parser.add_argument("-v", "--verbosity", type=int, choices=[0, 1, 2], default=2, help="increase output verbosity")
 args = parser.parse_args()
 

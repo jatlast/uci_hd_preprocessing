@@ -1,6 +1,13 @@
 ########################################################################
 # Jason Baumbach
-#   Read in text file, clean up contents, then output new text file
+#   Read in a csv file with possibly missing data, remove the desired amount
+#       of missing data (using the command line threshold options -ct & -rt),
+#       then output the new "clean" csv file with the desired column set 
+#       (using the command line option -cs)
+#
+# Note: this code is available on GitHub 
+#   https://github.com/jatlast/uci_hd_preprocessing.git
+#
 ########################################################################
 
 # required for reading csv files to get just the header

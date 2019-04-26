@@ -16,6 +16,9 @@
 #       -9 -9 -9 -9 -9 1 1 1
 #       1 1 -9. -9. name
 #
+# Note: this code is available on GitHub 
+#   https://github.com/jatlast/uci_hd_preprocessing.git
+#
 # Source of the original files:
 #   https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/
 #

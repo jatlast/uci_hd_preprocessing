@@ -2,6 +2,10 @@
 # Jason Baumbach
 #   Read in normalized csv file, split contents into train & test sets, 
 #   then output each into new csv file
+#
+# Note: this code is available on GitHub 
+#   https://github.com/jatlast/uci_hd_preprocessing.git
+#
 ########################################################################
 
 # required for easy dataframe manipulations
@@ -23,7 +27,6 @@ parser = argparse.ArgumentParser(description="perform the k-means clustering on 
 parser.add_argument("-f", "--filename", default="./data/new_smoke_uci+_normal.csv", help="file name (and path if not in . dir)")
 parser.add_argument("-tp", "--trainpercent", type=restricted_float, default=0.8, help="training percentage as a decimal (1-tp=test)")
 parser.add_argument("-bp", "--biaspercent", type=restricted_float, default=0.9, help="bias percentage as a decimal to favor num = 3 & 4")
-#parser.add_argument("-cs", "--columnset", choices=['uci', 'uci+', 'min', 'max'], default='max', help="limit the attributes to be considered")
 parser.add_argument("-v", "--verbosity", type=int, choices=[0, 1, 2], default=2, help="increase output verbosity")
 args = parser.parse_args()
 
